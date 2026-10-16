@@ -3,7 +3,7 @@
 多语言语料库与翻译档案馆。中文读者为主，收录中文、英语、泰语、韩语资料。
 前台是杂志风的公开站点，后台是只有你能进的编辑区。
 
-**技术栈**：Vue 3 + TypeScript + Vite · Supabase（Postgres / Auth / Storage）· TipTap 编辑器 · Cloudflare Pages
+**技术栈**：Vue 3 + TypeScript + Vite · Supabase（Postgres / Auth / Storage）· TipTap 编辑器 · GitHub Pages
 **独立项目**：使用你自己的 Supabase 项目，不与 Language.exe 共享数据库、认证或 Storage。
 
 ---
@@ -18,7 +18,7 @@
 ### 2. 初始化数据库
 打开 SQL Editor，把 `supabase/all-in-one.sql` 整个粘贴进去，点 Run。
 它依次建表、开启行级安全（RLS）、写入保存/搜索函数、建两个图片桶、写入六个主题和二级分类。
-可以重复执行，不会重复写入分类。
+只在空的新项目中执行一次；不要对已经初始化的数据库重复运行整份脚本。
 
 ### 3. 关闭公开注册，创建你的管理员账号
 1. Authentication → Sign In / Providers → Email：**关闭 “Allow new users to sign up”**。
@@ -32,7 +32,7 @@ select id, 'admin' from auth.users where email = 'you@example.com';
 
 > 只有这一行会被当作管理员。前端没有任何办法修改它，所以知道网站地址的人也无法给自己提权。
 
-4. 建议：Authentication → Multi-Factor 里为你的账号开启 TOTP 二步验证。
+4. 当前网站后台使用邮箱与密码登录；应用尚未接入 TOTP 挑战流程。Supabase 控制台账号的二步验证可单独开启。
 
 ### 4. 本地运行
 ```bash
@@ -42,11 +42,15 @@ npm run dev               # http://localhost:5173
 ```
 前台是 `/`，后台是 `/admin`，用上一步的邮箱和密码登录。
 
-### 5. 部署到 Cloudflare Pages
-- 连接代码仓库，**Build command**：`npm run build`，**Output directory**：`dist`
-- Environment variables：`VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`
-- `public/_redirects`（单页应用回退）与 `public/_headers`（安全响应头、CSP）会随构建一起发布
-- 部署后在 Supabase → Authentication → URL Configuration 把 **Site URL** 设为你的正式域名
+### 5. 部署到 GitHub Pages
+- 仓库：`https://github.com/fonrhythm/exiitune.exe`。
+- Settings → Secrets and variables → Actions → **Variables**，新增 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY`。只能填写前端允许公开的项目地址和 anon / publishable key。
+- Settings → Pages → Build and deployment → Source 选择 **GitHub Actions**。
+- 推送到 `main`，或在 Actions → Deploy GitHub Pages → Run workflow 手动发布。工作流会安装锁定依赖、运行单元测试、构建并发布 `dist`。
+- 前台：`https://fonrhythm.github.io/exiitune.exe/`；后台：`https://fonrhythm.github.io/exiitune.exe/#/admin`。Pages 构建使用仓库子路径和 hash 路由，刷新后台不会返回 404。
+- 部署后在 Supabase → Authentication → URL Configuration 把 **Site URL** 设为 `https://fonrhythm.github.io/exiitune.exe/`。
+- GitHub Pages 的前台网址公开可访问；草稿、私密内容和后台写权限由 Supabase RLS 与管理员身份控制。
+- `public/_redirects` 与 `public/_headers` 是其他托管平台的配置文件，GitHub Pages 不会应用其中的重定向或安全响应头。
 
 ### 6. 在后台做第一次检查
 - 设置 → 确认站名与署名（默认署名：Valar Morghulis·F）
@@ -97,8 +101,8 @@ JSON 恢复只恢复内容与图片记录；图片文件要另外放回 Storage�
 - **正文不使用 `v-html`**：富文本以 JSON 保存，前台逐节点渲染成 Vue 文本节点，不存在 HTML 注入。链接只放行 `http` / `https` / `mailto`，外链加 `noopener noreferrer nofollow`。
 - **图片**：公开桶 / 私有桶分开；私有图片只用 10 分钟有效的签名 URL。公开条目引用私密图片时，数据库会拒绝保存，前端提示后可一键转为公开；条目改为非公开时，只被它使用的公开图片会自动收回私有桶。上传限制类型与大小，文件名替换为随机名，不保留原始文件名。
 - **视频不托管**，只记录外部链接。
-- `public/_headers` 带 CSP、`X-Frame-Options` 等响应头。`connect-src` / `img-src` 写的是 `https://*.supabase.co`；如果你用自定义域名，需要改成自己的域名。
-- 登录失败限流、密码强度、二步验证在 Supabase 的 Authentication 设置里开启。
+- `public/_headers` 为支持该文件的托管平台提供 CSP、`X-Frame-Options` 等响应头；GitHub Pages 不应用该文件。`connect-src` / `img-src` 写的是 `https://*.supabase.co`；如果你用 Supabase 自定义域名，需要同步调整。
+- 登录失败限流、密码强度在 Supabase 的 Authentication 设置里配置；网站后台尚未接入二步验证流程。
 
 ---
 

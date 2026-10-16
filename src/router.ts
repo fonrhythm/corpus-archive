@@ -1,9 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
 import { useAuth } from '@/stores/auth'
 import { useSite } from '@/stores/site'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: import.meta.env.VITE_ROUTER_MODE === 'hash'
+    ? createWebHashHistory(import.meta.env.BASE_URL)
+    : createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', component: () => import('@/views/HomeView.vue'), meta: { title: '' } },
     { path: '/topics/:slug', component: () => import('@/views/TopicView.vue') },
